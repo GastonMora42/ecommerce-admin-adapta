@@ -1,12 +1,14 @@
-import NextAuth, {getServerSession} from 'next-auth'
+import NextAuth, { getServerSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import {MongoDBAdapter} from "@next-auth/mongodb-adapter";
-import clientPromise from "@/lib/mongodb";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
+import clientPromise from "@/lib/mongodb"
 
-const adminEmails = ['gastonmora1742@gmail.com'];
+// Lista de correos electrónicos de administradores
+const adminEmails = ['gastonmora1742@gmail.com']
 
+// Configuración de opciones de autenticación
 export const authOptions = {
-  secret: process.env.SECRET,
+  secret: process.env.SECRET, // Asegúrate de que la variable de entorno esté bien escrita
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
@@ -15,23 +17,24 @@ export const authOptions = {
   ],
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
-    session: ({session,token,user}) => {
+    session: ({ session, token, user }) => {
       if (adminEmails.includes(session?.user?.email)) {
-        return session;
+        return session
       } else {
-        return false;
+        return null // Devuelve null si el usuario no es un admin
       }
     },
   },
-};
+}
 
-export default NextAuth(authOptions);
+// Exportar NextAuth con las opciones configuradas
+export default NextAuth(authOptions)
 
-export async function isAdminRequest(req,res) {
-  const session = await getServerSession(req,res,authOptions);
-  if (!adminEmails.includes(session?.user?.email)) {
-    res.status(401);
-    res.end();
-    throw 'not an admin';
+// Función para verificar si una solicitud es de un administrador
+export async function isAdminRequest(req, res) {
+  const session = await getServerSession(req, res, authOptions)
+  if (!session || !adminEmails.includes(session.user.email)) {
+    res.status(401).end()
+    throw new Error('Not an admin')
   }
 }
