@@ -18,7 +18,7 @@ export default function OrdersPage() {
             <th>Date</th>
             <th>Paid</th>
             <th>Recipient</th>
-            <th>Products</th>
+            <th>Productos</th>
           </tr>
         </thead>
         <tbody>
@@ -37,8 +37,11 @@ export default function OrdersPage() {
             <td>
               {order.line_items.map(l => (
                 <>
-                  {l.price_data?.product_data.name} x
-                  {l.quantity}<br />
+                  {l.price_data?.product_data.name} 
+                  <br />
+                  <p>Descripcion</p>{l.title}<br />
+                  <p>Cantidad</p>{l.quantity}<br />
+                  <p>Precio unitario</p>{l.unit_price}<br />
                 </>
               ))}
             </td>
