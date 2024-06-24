@@ -6,7 +6,7 @@ import multiparty from 'multiparty';
 import { mongooseConnect } from "@/lib/mongoose";
 import { isAdminRequest } from "@/pages/api/auth/[...nextauth]";
 
-const keyFilename = path.resolve(process.env.GCLOUD_KEYFILE); // Resolver la ruta absoluta
+const keyFilename = path.resolve(process.env.GCLOUD_KEYFILE); // Resolver la ruta absolutas
 const bucketName = 'bucket-adapta';
 
 export default async function handle(req, res) {
