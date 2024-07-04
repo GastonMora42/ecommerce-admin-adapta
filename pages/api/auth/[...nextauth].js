@@ -27,7 +27,7 @@ export const authOptions = {
   },
 }
 
-// Exportar NextAuth con las opciones configuradas
+// Exportar NextAuth con las opciones configuradass
 export default NextAuth(authOptions)
 
 // Función para verificar si una solicitud es de un administrador
