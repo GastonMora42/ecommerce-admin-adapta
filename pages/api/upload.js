@@ -6,7 +6,7 @@ import multiparty from 'multiparty';
 import { mongooseConnect } from "@/lib/mongoose";
 import { isAdminRequest } from "@/pages/api/auth/[...nextauth]";
 
-const keyFilename = path.resolve(process.env.GCLOUD_KEYFILE); // Resolver la ruta absolutas
+const keyFilename = path.resolve(process.env.GCLOUD_KEYFILE); // Resolver la ruta absoluta
 const bucketName = 'bucket-adapta';
 
 export default async function handle(req, res) {
@@ -23,24 +23,29 @@ export default async function handle(req, res) {
   });
 
   const links = [];
-  for (const file of files.file) {
-    const ext = file.originalFilename.split('.').pop();
-    const newFilename = Date.now() + '.' + ext;
-    await storage.bucket(bucketName).upload(file.path, {
-      destination: newFilename,
-      metadata: {
-        contentType: mime.lookup(file.path),
-        cacheControl: 'public, max-age=31536000',
-      },
-    });
 
-    const [url] = await storage.bucket(bucketName).file(newFilename).getSignedUrl({
-      action: 'read',
-      expires: '03-09-2491', // Puedes ajustar esta fecha según sea necesario
-    });
+  // Convertir archivo JSON a Base64
+  const file = files.file[0]; // Suponiendo que solo hay un archivo
+  const jsonBuffer = fs.readFileSync(file.path);
+  const base64Json = jsonBuffer.toString('base64');
 
-    links.push(url);
-  }
+  // Subir JSON en Base64 a Google Cloud Storage
+  const newFilename = Date.now() + '.json'; // Nombre de archivo en el bucket
+  await storage.bucket(bucketName).upload(Buffer.from(base64Json, 'base64'), {
+    destination: newFilename,
+    metadata: {
+      contentType: 'application/json',
+      cacheControl: 'public, max-age=31536000',
+    },
+  });
+
+  // Obtener URL firmada para leer el archivo desde Storage
+  const [url] = await storage.bucket(bucketName).file(newFilename).getSignedUrl({
+    action: 'read',
+    expires: '03-09-2491', // Puedes ajustar esta fecha según sea necesario
+  });
+
+  links.push(url);
 
   return res.json({ links });
 }
