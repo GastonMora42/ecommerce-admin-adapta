@@ -6,7 +6,11 @@ import multiparty from 'multiparty';
 import { mongooseConnect } from "@/lib/mongoose";
 import { isAdminRequest } from "@/pages/api/auth/[...nextauth]";
 
-const keyFilename = path.resolve(process.env.GCLOUD_KEYFILE); // Resolver la ruta absoluta
+const base64Keyfile = process.env.GCLOUD_KEYFILE;
+const keyFilename = path.join('/tmp', 'google-credentials.json');
+
+fs.writeFileSync(keyFilename, Buffer.from(base64Keyfile, 'base64').toString('utf-8'));
+
 const bucketName = 'bucket-adapta';
 
 export default async function handle(req, res) {
@@ -23,29 +27,27 @@ export default async function handle(req, res) {
   });
 
   const links = [];
+  for (const file of files.file) {
+    const ext = file.originalFilename.split('.').pop();
+    const newFilename = Date.now() + '.' + ext;
+    await storage.bucket(bucketName).upload(file.path, {
+      destination: newFilename,
+      metadata: {
+        contentType: mime.lookup(file.path),
+        cacheControl: 'public, max-age=31536000',
+      },
+    });
 
-  // Convertir archivo JSON a Base64
-  const file = files.file[0]; // Suponiendo que solo hay un archivo
-  const jsonBuffer = fs.readFileSync(file.path);
-  const base64Json = jsonBuffer.toString('base64');
+    const [url] = await storage.bucket(bucketName).file(newFilename).getSignedUrl({
+      action: 'read',
+      expires: '03-09-2491',
+    });
 
-  // Subir JSON en Base64 a Google Cloud Storage
-  const newFilename = Date.now() + '.json'; // Nombre de archivo en el bucket
-  await storage.bucket(bucketName).upload(Buffer.from(base64Json, 'base64'), {
-    destination: newFilename,
-    metadata: {
-      contentType: 'application/json',
-      cacheControl: 'public, max-age=31536000',
-    },
-  });
+    links.push(url);
+  }
 
-  // Obtener URL firmada para leer el archivo desde Storage
-  const [url] = await storage.bucket(bucketName).file(newFilename).getSignedUrl({
-    action: 'read',
-    expires: '03-09-2491', // Puedes ajustar esta fecha según sea necesario
-  });
-
-  links.push(url);
+  // Borra el archivo temporal después de usarlo
+  fs.unlinkSync(keyFilename);
 
   return res.json({ links });
 }
